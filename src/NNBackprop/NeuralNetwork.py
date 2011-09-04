@@ -14,11 +14,12 @@ from NNUtils import NNUtils
 
 class NeuralNetwork():
     def __init__(self, name=None, n_inputs=None, n_hiddens=0, n_outputs=0,
-                 learn_rate=.35, momentum=1.0, training_set=None, 
+                 learn_rate=.35, momentum=1.0, training_vectors=None, 
                  training_file=None, network_state_file=None, 
                  print_flags=('all'), 
                  moving_window_size=None, moving_window_step_size=None,
                  save_network=False, save_network_state_flags=('all')):
+        """initialization routing for the NeuralNetwork object"""
         self.set_name(name)
         self.set_learning_rate(learn_rate)
         self.set_momentum(momentum)
@@ -34,11 +35,10 @@ class NeuralNetwork():
         self.rmse = 0.0
         if network_state_file:
             self.load_network_state(network_state_file)
-        if training_file:
-            self.import_training_file(training_file)
 
     def create_network_architecture(self, n_inputs=None, n_hiddens=None, 
                                     n_outputs=None):  
+        """create a NeuralNetwork object with a specific architecture"""
         self.inputs             = []
         self.hiddens            = []
         self.outputs            = [] 
@@ -78,7 +78,8 @@ class NeuralNetwork():
             self.output_bias_links.append(
                 Links.NeuronLink(None, output_neuron.index, 'output_bias')
             )
-            
+
+    """
     def import_training_file(self, filepath, delimiter='\t', col_num=0, 
                              moving_window_input_size=None,
                              moving_window_output_size=None,
@@ -88,54 +89,64 @@ class NeuralNetwork():
         if not moving_window_input_size or not moving_window_output_size:
             moving_window_input_size = len(self.inputs)
             moving_window_output_size = len(self.outputs)
-        (self.training_set, self.scale_min, self.scale_max) = (
+        (self.training_vectors, self.scale_min, self.scale_max) = (
             NNUtils.parse_windowed_training_file(
                 filepath, input_win_size=moving_window_input_size, 
                 output_win_size=moving_window_output_size, 
                 step_size=moving_window_step_size, 
                 column_number=col_num))
+    """
 
-    def set_training_set(self, data):
-        self.training_set = data
+    def set_training_vectors(self, data):
+        """set the training vectors for the network"""
+        self.training_vectors = data
 
-    def get_training_set(self):
-        return self.training_set
+    def get_training_vectors(self):
+        """get all of the training vectors for the network"""
+        return self.training_vectors
     
     def get_architecture(self):
+        """return a simple representation of the network architecture"""
         return (len(self.inputs), len(self.hiddens), len(self.outputs))
             
-    # set the input node(s) value to the vector elements provided
     def set_inputs(self, input_vector):
+        """set input node values"""
         for i in xrange(len(input_vector)):
             self.inputs[i].value = float(input_vector[i])
     
-    # set the output node(s) value to the vector elements provided
     def set_outputs(self, output_vector):
+        """set output node values"""
         for i in xrange(len(output_vector)):
             self.outputs[i].value = float(output_vector[i])
     
-    # set the output node(s) expected value to the vector elements provided
     def set_expected_outputs(self, output_vector):
+        """set output node expected values"""
         for i in xrange(len(output_vector)):
             self.outputs[i].expected_value = float(output_vector[i])
         
     def set_name(self, name):
+        """give the network a name for humans to identify it"""
         self.name = name
     
     def set_learning_rate(self, learn_rate):
+        """set the learning rate of the network"""
         self.learn_rate = learn_rate    
     
     def set_momentum(self, momentum):
+        """set the momentum of the network"""
         self.momentum = momentum
         
     def set_scale_minmax(self, scale_min, scale_max):
+        """set the min/max scale values"""
         self.set_scale_min(scale_min)
         self.set_scale_max(scale_max)
         
     def set_scale_min(self, scale_min):
+        """set the min scale value"""
         self.scale_min = scale_min
         
     def set_scale_max(self, scale_max):
+        """set the max scale value"""
         self.scale_max = scale_max
      
     # present correct patterns until network error is below threshold training
@@ -164,7 +175,7 @@ class NeuralNetwork():
                 rmse = self.get_rmse()
                 if rmse and rmse < rmse_threshold: 
                     break
-            for training_vector in self.training_set:
+            for training_vector in self.training_vectors:
                 # set network's inputs to inputs provides by a training vector
                 self.set_inputs(training_vector[0])
                 # set network's expected outputs to train against
@@ -185,11 +196,15 @@ class NeuralNetwork():
        self.print_flags = flags
 
     def _in_print_flags(self, key):
+        """convenience function for checking if a key is in the set of 
+        printable flags
+        """
         if key in self.print_flags or 'all' in self.print_flags:
             return True
         return False
         
     def print_network_state(self):
+        """print the current network state in Human readable form"""
         if self.print_flags:
             print "-" * 80
         if self._in_print_flags('name'):
@@ -234,6 +249,7 @@ class NeuralNetwork():
                 print 'progress     : %s%%' % percent
     
     def parse_runtime(self):
+        """parse the time delta for run time into something meaningful"""
         try:
             runtime  = (time.time() - self.start_time)
             hrs      = int(runtime / (60*60))
@@ -245,65 +261,105 @@ class NeuralNetwork():
         except:
             return None
         
-    # produce outputs of hidden and output layer neurons
     def feed_forward(self):
-        # The output values for a neuron is calculated by summing up all of the 
-        # pre-synaptic neuron's values multiplied by that link's weight.
-        #
-        # This summation is then ran through the activation function inorder to
-        # get value ... 
-        #
-        # sum = i0*w0 + i1*w1 + ... + iN*wN + LayerBias*wB
-        # sum = activation_function(sum)
-        
-        # update hidden neuron values 
+        """
+        produce outputs of hidden and output layer neurons
+
+        The output values for a neuron are calculated by summing up all of the 
+        pre-synaptic neuron's values multiplied by that link's weight.
+
+        This summation is then ran through the activation function inorder to
+        get value ... 
+
+        sum = i0*w0 + i1*w1 + ... + iN*wN + LayerBias*wB
+        sum = activation_function(sum)
+        """
+        self._ff_calc_hidden_layer()
+        self._ff_calc_output_layer()
+
+    def _ff_calc_hidden_layer(self):
+        """
+        update all hidden neuron values with all of the input node/link 
+        contributions
+        """
         for hidden_neuron in self.hiddens:
+            # value from Bias
             sum = (self.hidden_bias_neuron.value 
                    * self.hidden_bias_links[hidden_neuron.index].weight)
+            # summation of input node values and their corresponding weights
             for input_neuron in self.inputs:
                 sum += (input_neuron.value 
                         * hidden_neuron.input_links[input_neuron.index].weight)
+            # set the hidden neuron's value
             self.hiddens[hidden_neuron.index].value = self._activation_function(sum)
 
-        # update output neuron values
+    def _ff_calc_output_layer(self):
+        """
+        update all output neuron values with all of the hidden node/link
+        contributions
+        """
         for output_neuron in self.outputs:     
+            # value from Bias
             sum = (self.output_bias_neuron.value 
                    * self.output_bias_links[output_neuron.index].weight)
+            # summation of hidden node values and their corresponding weights
             for hidden_neuron in self.hiddens:
                 sum += (hidden_neuron.value 
                         * hidden_neuron.output_links[output_neuron.index].weight)
+            # set the output neuron's value
             self.outputs[output_neuron.index].value = self._activation_function(sum)
             
     # send error signals from output neurons back to input links,
     # and adjust all weights according to new error signals / values
     def backpropagate_errors(self):       
-        # update output neuron error signals
-        # SIGMA = (ExpectedOutput - OutputValue) * OutputValue * (1 - OutputValue)
+        self._bp_calc_output_error_signals()
+        self._bp_calc_hidden_error_signals()
+        self._bp_calc_output_to_hidden_weights()
+        self._bp_calc_hidden_to_input_weights()
+
+    def _bp_calc_output_error_signals(self):
+        """
+        update output neuron error signals
+        
+        SIGMA = (ExpectedOutput - OutputValue) * 
+                 OutputValue * 
+                 (1 - OutputValue)
+        """
         for output_neuron in self.outputs:
             self.outputs[output_neuron.index].error_signal = (
                 (output_neuron.expected_value - output_neuron.value) 
-                * output_neuron.value 
-                * (1.0 - output_neuron.value))
+                 * output_neuron.value 
+                 * (1.0 - output_neuron.value))
 
-        # update hidden neuron error signals
-        # SIGMA = HiddenValue * (1 - HiddenValue) * 
-        #    sum {all post-synaptic neurons error signal * weight of link} 
+    def _bp_calc_hidden_error_signals(self):
+        """
+        update hidden neuron error signals
+
+        FORMULA:
+        sigma = HiddenValue * 
+                (1 - HiddenValue) * 
+                summation {all post-synaptic neurons error signals * 
+                           weight of each corresponding link} 
+        """
         for hidden_neuron in self.hiddens:
             sum = 0.0
             for output_neuron in self.outputs:
                 sum += (output_neuron.error_signal 
-                       * hidden_neuron.output_links[output_neuron.index].weight)
+                        * hidden_neuron.output_links[output_neuron.index].weight)
             self.hiddens[hidden_neuron.index].error_signal = (
                 hidden_neuron.value * (1.0 - hidden_neuron.value) * sum)
-
-        # !!! NOTE !!!
-        # weights are adjusted ONLY after all error values have been calculated
-        # !!! NOTE !!!
-        #
-        # w += learn_rate * error signal of post-syntaptic neuron 
-        #      * value of current neuron)
         
-        # update weights between output and hidden layer
+    def _bp_calc_output_to_hidden_weights(self):
+        """
+        update weights on links between output and hidden layer
+    
+        NOTE: must be done ONLY after all error values have been calculated
+
+        FORMULA:
+        weight += learn_rate * 
+                  error signal of post-syntaptic neuron * 
+                  value of current neuron)
+        """
         for output_neuron in self.outputs:
             for hidden_neuron in self.hiddens:
                 # update output <---> hidden weights
@@ -315,7 +371,17 @@ class NeuralNetwork():
                 self.learn_rate * output_neuron.error_signal 
                 * self.output_bias_neuron.value)
         
-        # update weights between input and hidden layer
+    def _bp_calc_hidden_to_input_weights(self):
+        """
+        update weights between input and hidden layer
+
+        NOTE: must be done ONLY after all error values have been calculated
+
+        FORMULA:
+        weight += learn_rate * 
+                  error signal of post-syntaptic neuron * 
+                  value of current neuron)
+        """
         for hidden_neuron in self.hiddens:
             for input_neuron in self.inputs:
                 # update hidden <---> input weights
@@ -327,8 +393,8 @@ class NeuralNetwork():
                 self.learn_rate * hidden_neuron.error_signal 
                 * self.hidden_bias_neuron.value)
     
-    # Total Sum Squared Error
     def get_tsse(self):
+        """Total Sum Squared Error"""
         tsse = 0.0
         for output_neuron in self.outputs:
             if not output_neuron.expected_value and not output_neuron.value:
@@ -337,8 +403,8 @@ class NeuralNetwork():
             tsse += math.pow(difference, 2)  
         return tsse * 0.5
         
-    # Mean Squared Error
     def get_mse(self):
+        """Mean Squared Error"""
         mse = 0.0
         for output_neuron in self.outputs:
             if not output_neuron.expected_value and not output_neuron.value:
@@ -347,32 +413,34 @@ class NeuralNetwork():
             mse += difference ** 2
         return mse / len(self.outputs)
     
-    # Root Mean Squared Error
     def get_rmse(self):
+        """Root Mean Squared Error"""
         try:
             rmse = ((2 * self.get_tsse()) / 
-                    (len(self.training_set) * len(self.outputs)))
+                    (len(self.training_vectors) * len(self.outputs)))
         except TypeError:
             # tsse returned None...
             return None
         return math.sqrt(rmse)
         
-    # sigmoid function; squashes a value between 0..1
     def _activation_function(self, net):
+        """sigmoid function; squashes a value between 0..1"""
         return 1.0 / (1.0 + math.exp(-net))
 
-    # return list of input values    
     def get_inputs(self):
+        """return list of input values"""
         return [input_neuron.value for input_neuron in self.inputs]
 
-    # return list of output values    
     def get_outputs(self):
+        """return list of output values"""
         return [output_neuron.value for output_neuron in self.outputs]
     
     def set_name(self, name):
+        """set name for the NeuralNetwork object"""
         self.name = name
     
     def save_network_state(self, filepath):
+        """output the network state to a file"""
         now = str(datetime.datetime.now())
         file = open(filepath, "w")
         file.write(''.join(['date,', str(now), '\n',
@@ -449,6 +517,7 @@ class NeuralNetwork():
         file.close()
     
     def load_network_state(self, filepath):
+        """load an existing network state from a file"""
         fp = open(filepath)        
         for line in fp:
             if not line:         break     # EOF
@@ -507,7 +576,4 @@ class NeuralNetwork():
                 output_index = int(output_index)
                 weight       = float(weight)
                 self.output_bias_links[output_index].weight = weight
-            elif line.startswith('training_file_path,'):
-                self.import_training_file(line.split(',')[1])
         fp.close()
-        

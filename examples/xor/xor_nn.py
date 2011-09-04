@@ -1,3 +1,8 @@
+"""
+Lyle Scott III
+lyle@digitalfoo.net
+"""
+
 from NNBackprop import NeuralNetwork as NN
 from NNUtils import NNUtils 
 
@@ -8,7 +13,7 @@ def main():
 
     path = 'input.txt'
     (vectors, min_n, max_n) = NNUtils.parse_training_file(path, 2, 1)
-    nnet.set_training_set(vectors)
+    nnet.set_training_vectors(vectors)
     nnet.training_loop(tsse_threshold=.005)
     nnet.print_network_state()
 
