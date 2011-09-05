@@ -1,0 +1,17 @@
+Lyle Scott III
+lyle@digitalfoo.net
+---
+
+In this example, a Neural Network uses backpropagation to "learn" XOR and to
+later identify if two inputs are a valid XOR pair or not.
+
+This may seem trivial, but for neural networks this problem is historic. XOR
+is not linearly differentiable, which makes it impossible for the 2-layer
+neural network to learn.
+
+XOR Truth Table
+input1  input2  output1
+0       0       0
+0       1       1
+1       0       1
+0       0       0
