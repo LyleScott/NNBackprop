@@ -8,14 +8,27 @@ from NNUtils import NNUtils
 
 
 def main():
-    nnet = NN.NeuralNetwork(name='Example XOR Network', 
-                            n_inputs=2, n_hiddens=2, n_outputs=1)
+    nnet = NN.NeuralNetwork(name='Example XOR Network')
+    nnet.create_network_architecture(n_inputs=2, n_hiddens=2, n_outputs=1)
 
     path = 'input/training.txt'
     (vectors, scale_min, scale_max) = NNUtils.parse_training_file(path, 2, 1)
     nnet.set_training_vectors(vectors, scale_min, scale_max)
+
     nnet.training_loop(tsse_threshold=.005)
+
+    nnet.save_network_state_file('test_nn.csv')
     nnet.print_network_state()
+
+    print
+    print
+
+    nnet = NN.NeuralNetwork(name='Example XOR Network', 
+                            network_state_file='test_nn.csv')
+
+    nnet.print_network_state()
+
+    
 
 if __name__ == '__main__':
     main()

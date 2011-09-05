@@ -13,36 +13,40 @@ from NNUtils import NNUtils
 
 
 class NeuralNetwork():
-    def __init__(self, name=None, n_inputs=0, n_hiddens=0, n_outputs=0,
-                 learn_rate=.35, momentum=1.0, 
-                 network_state_file=None, print_flags=('all'), 
-                 save_network=False):
+    def __init__(self, name=None, learn_rate=0.35, momentum=1.0, 
+                 network_state_file=None, 
+                 save_network_state=False, save_network_state_obj=False):
         """initialization routine for the NeuralNetwork object"""
+
+        # initialize a network from a csv'ish like file
+        if network_state_file:
+            self.load_network_state(network_state_file)
+            return
+
+        # set defaults
         self.set_name(name)
         self.set_learning_rate(learn_rate)
         self.set_momentum(momentum)
-        if n_inputs and n_hiddens and n_outputs: 
-            self.create_network_architecture(n_inputs, n_hiddens, n_outputs)
-        self.set_printable_flags(print_flags)
-        self.save_network = save_network
-        self.save_network_state_flags = save_network_state_flags
+        self.save_network_state = save_network_state
         self.scale_min = None
         self.scale_max = None
-        self.tsse = 0.0
-        self.mse = 0.0
-        self.rmse = 0.0
-        if network_state_file:
-            self.load_network_state(network_state_file)
 
     def create_network_architecture(self, n_inputs, n_hiddens, n_outputs):  
         """create a NeuralNetwork object with a specific architecture"""
 
+        if n_inputs <= 0:
+            raise Exception('create_network_architecture :: n_inputs <= 0')
+        elif n_hiddens <= 0:
+            raise Exception('create_network_architecture :: n_hiddens <= 0')
+        elif n_outputs <= 0:
+            raise Exception('create_network_architecture :: n_outputs <= 0')
+
         # lists of stuff we will need
-        self.inputs             = []
-        self.hiddens            = []
-        self.outputs            = [] 
-        self.hidden_bias_links  = [] 
-        self.output_bias_links  = []
+        self.inputs            = []
+        self.hiddens           = []
+        self.outputs           = [] 
+        self.hidden_bias_links = [] 
+        self.output_bias_links = []
     
         # initialize a bias neuron for each layer
         self.hidden_bias_neuron = Neurons.BiasNeuron('hidden')
@@ -191,70 +195,43 @@ class NeuralNetwork():
                 self.feed_forward()            
                 # propagate errors and weights (connection strengths) backwards
                 self.backpropagate_errors()
-
             self.epoch_i += 1
-            #NNUtils.save_obj_to_file(self, '.', self.epoch_i)
-            #sys.exit()
             if print_network_state is True:
                 self.print_network_state()
         #if self.save_network is True:
         #    self.save_network_state('network_state.csv')
         
-    def set_printable_flags(self, *flags):
-       self.print_flags = flags
-
-    def _in_print_flags(self, key):
-        """convenience function for checking if a key is in the set of 
-        printable flags
-        """
-        if key in self.print_flags or 'all' in self.print_flags:
-            return True
-        return False
-        
     def print_network_state(self):
         """print the current network state in Human readable form"""
-        if self.print_flags:
-            print "-" * 80
-        if self._in_print_flags('name'):
-            print 'name         : %s' % self.name
-        if self._in_print_flags('architecture'):
-            print 'architecture :', self.get_architecture()
-        if self._in_print_flags('learn_rate'):
-            print 'learn rate   : %s' % self.learn_rate
-        if self._in_print_flags('tsse'):
-            tsse = self.get_tsse()
-            if tsse is not None:
-                print 'TSSE         : %.12f' % tsse
-            else:
-                print 'TSSE         : None'
-        if self._in_print_flags('mse'):
-            mse = self.get_mse()
-            if mse is not None:
-                print 'MSE          : %.12f' % mse
-            else:
-                print 'MSE          : None'
-        if self._in_print_flags('rmse'):
-            rmse = self.get_rmse()
-            if rmse is not None:
-                print 'RMSE         : %.12f' % rmse
-            else:
-                print 'RMSE         : None'
-        if self._in_print_flags('runtime'):
-            runtime = self.parse_runtime()
-            if runtime is not None:
-                print 'runtime      : %sh %sm %ss' % runtime
-            else:
-                print 'runtime      : None'
-        if self._in_print_flags('epochs'):
-            if hasattr(self, 'max_epochs') and self.max_epochs:
-                print 'epochs       : %s/%s' % (self.epoch_i, self.max_epochs)
-            else:
-                print 'epochs       : %s' % (self.epoch_i)
+        print "-" * 80
+        print 'name         : %s' % self.name
+        print 'architecture :', self.get_architecture()
+        print 'learn rate   : %s' % self.learn_rate
+
+        tsse = self.get_tsse()
+        if tsse:
+            print 'TSSE         : %.12f' % tsse
+
+        mse = self.get_mse()
+        if mse:
+            print 'MSE          : %.12f' % mse
+
+        rmse = self.get_rmse()
+        if rmse:
+            print 'RMSE         : %.12f' % rmse
+
+        runtime = self.parse_runtime()
+        if runtime:
+            print 'runtime      : %sh %sm %ss' % runtime
+
+        if hasattr(self, 'max_epochs') and self.max_epochs:
+            print 'epochs       : %s/%s' % (self.epoch_i, self.max_epochs)
+        else:
+            print 'epochs       : %s' % (self.epoch_i)
                 
-        if self._in_print_flags('progress'):
-            if hasattr(self, 'max_epochs') and self.max_epochs:
-                percent = float(self.epoch_i) / float(self.max_epochs) * 100.
-                print 'progress     : %s%%' % percent
+        if hasattr(self, 'max_epochs') and self.max_epochs:
+            percent = float(self.epoch_i) / float(self.max_epochs) * 100.
+            print 'progress     : %s%%' % percent
     
     def parse_runtime(self):
         """parse the time delta for run time into something meaningful"""
@@ -457,56 +434,66 @@ class NeuralNetwork():
             return True
         return False
 
-    def save_network_state(self, filepath):
+    def save_network_state_file(self, filepath):
         """output the network state to a file"""
         now = str(datetime.datetime.now())
-        progress = float(self.epoch_i) / float(self.max_epochs) * 100.0
+        if hasattr(self, 'max_epochs'):
+            epochs = 'epochs,%s,%s' % (self.epoch_i, self.max_epochs)
+            progress = float(self.epoch_i) / float(self.max_epochs) * 100.0
+        else:
+            epochs = 'epochs,%s' % self.epoch_i
+            progress = 'n/a'
         input_values = ','.join(['%s'%i.value for i in self.inputs])
         output_values = ','.join(['%s'%i.value for i in self.outputs])
         expected_values = ','.join(['%s'%i.expected_value 
                                     for i in self.outputs])
         fp = open(filepath, "w")
-        fp.write('\n'.join(['date,%s\n' % now,
-                            'name,%s\n' % self.name,
-                            'learning_rate,%s\n' % self.learn_rate,
-                            'momentum,', str(self.momentum), '\n',
-                            'architecture,%s,%s,%s\n' % (len(self.inputs), 
-                                                         len(self.hiddens), 
-                                                         len(self.outputs)),
-                            'scale_min,%s\n' % self.scale_min,
-                            'scale_max,%s\n' % self.scale_max,
-                            'tsse,%.12f\n' % self.get_tsse(),
-                            'mse,%.12f\n' % self.get_mse(),
-                            'rmse,%.12f\n' % self.get_rmse(),
+        fp.write('\n'.join(['name,%s' % self.name,
+                            'date,%s' % now,
+                            'learning_rate,%s' % self.learn_rate,
+                            'momentum,%s' % self.momentum,
+                            'architecture,%s,%s,%s' % (len(self.inputs), 
+                                                       len(self.hiddens), 
+                                                       len(self.outputs)),
+                            'scale_min,%s' % self.scale_min,
+                            'scale_max,%s' % self.scale_max,
+                            'tsse,%.12f' % self.get_tsse(),
+                            'mse,%.12f' % self.get_mse(),
+                            'rmse,%.12f' % self.get_rmse(),
                             'runtime,%sh,%sm,%ss' % self.parse_runtime(),
-                            'epochs,%s,%s' % (self.epoch_i, self.max_epochs),
-                            'progress,%s%%' % progress,
-                            'input_values,%s\n' % input_values,             
-                            'outputs_values,%s\n' % output_values,
+                            epochs,
+                            'progress,%s' % progress,
+                            'input_values,%s' % input_values,             
+                            'output_values,%s' % output_values,
                             'output_expected_values,%s\n' % expected_values,
                           ]))
         lines = []
-        if self._in_network_state_flags('input2hidden_links'): 
-            for hidden_neuron in self.hiddens:
-                for hidden_link in hidden_neuron.input_links:
-                    lines.append(','.join(['IH', str(hidden_link.in_index), 
-                                           str(hidden_link.out_index),
-                                           str(hidden_link.weight)]))
-        if self._in_network_state_flags('hidden_bias_links'): 
-            for hidden_bias_link in self.hidden_bias_links:
-                lines.append(','.join(['HB', str(hidden_bias_link.out_index),
-                                       str(hidden_bias_link.weight) ]))
-        if self._in_network_state_flags('hidden2output_links'):
-            for hidden_neuron in self.hiddens:
-                for output_link in hidden_neuron.output_links:
-                    lines.append(','.join(['HO', str(output_link.in_index),
-                                           str(output_link.out_index),
-                                           str(output_link.weight)]))
-        if self._in_network_state_flags('output_bias_links'): 
-            for output_bias_link in self.output_bias_links:
-                lines.append(','.join(['OB', str(output_bias_link.out_index),
-                                       str(output_bias_link.weight)]))
+
+        # save training vectors
+        lines.append('training_vectors,%s' % self.training_vectors)
+    
+        # input<-->hidden links
+        for hidden_neuron in self.hiddens:
+            for hidden_link in hidden_neuron.input_links:
+                lines.append(','.join(['IH', str(hidden_link.in_index), 
+                                       str(hidden_link.out_index),
+                                       str(hidden_link.weight)]))
+        # hidden bias link
+        for hidden_bias_link in self.hidden_bias_links:
+            lines.append(','.join(['HB', str(hidden_bias_link.out_index),
+                                   str(hidden_bias_link.weight) ]))
+        # hidden<-->output links
+        for hidden_neuron in self.hiddens:
+            for output_link in hidden_neuron.output_links:
+                lines.append(','.join(['HO', str(output_link.in_index),
+                                       str(output_link.out_index),
+                                       str(output_link.weight)]))
+        # output bias link
+        for output_bias_link in self.output_bias_links:
+            lines.append(','.join(['OB', str(output_bias_link.out_index),
+                                   str(output_bias_link.weight)]))
         fp.write('\n'.join(lines))
+
         fp.close()
     
     def load_network_state(self, filepath):
@@ -534,8 +521,10 @@ class NeuralNetwork():
                 hr,min,sec = line.split(',')[1:]
                 self.runtime = (hr[:-1], min[:-1], sec[:-1])
             elif line.startswith('epochs,'):
-                self.epoch_i = int(line.split(',')[1])
-                self.max_epochs = int(line.split(',')[2])
+                split = line.split(',')
+                self.epoch_i = int(split[1])
+                if len(split) == 3:
+                    self.max_epochs = int(split[2])
             elif line.startswith('input_values,'):
                 inputs = []
                 for input in line.split(',')[1:]:
@@ -543,10 +532,12 @@ class NeuralNetwork():
                 self.set_inputs(inputs)
             elif line.startswith('output_values,'):
                 self.set_outputs(
-                    [line.split(',')[i] for i in xrange(1, len(line.split(',')))])
+                    [line.split(',')[i] 
+                     for i in xrange(1, len(line.split(',')))])
             elif line.startswith('output_expected_values,'):
                 self.set_expected_outputs(
-                    [line.split(',')[i] for i in xrange(1, len(line.split(',')))])    
+                    [line.split(',')[i] 
+                     for i in xrange(1, len(line.split(',')))])    
             elif line.startswith('IH,'):
                 name,input_index,hidden_index,weight = line.split(',')
                 input_index  = int(input_index)
@@ -554,19 +545,21 @@ class NeuralNetwork():
                 weight       = float(weight)
                 self.hiddens[hidden_index].input_links[input_index].weight = weight
             elif line.startswith('HB,'):
-                name,hidden_index,weight = line.split(",")
+                name,hidden_index,weight = line.split(',')
                 hidden_index = int(hidden_index)
                 weight       = float(weight)
                 self.hidden_bias_links[hidden_index].weight = weight
             elif line.startswith('HO,'):
-                name,hidden_index,output_index,weight = line.split(",")
+                name,hidden_index,output_index,weight = line.split(',')
                 hidden_index = int(hidden_index)
                 output_index = int(output_index)
                 weight       = float(weight)
                 self.hiddens[hidden_index].output_links[output_index].weight = weight
             elif line.startswith('OB,'):
-                name,output_index,weight = line.split(",")
+                name,output_index,weight = line.split(',')
                 output_index = int(output_index)
                 weight       = float(weight)
                 self.output_bias_links[output_index].weight = weight
+            elif line.startswith('training_vectors,'):
+                self.training_vectors = eval(line[line.find(',')+1:])
         fp.close()
