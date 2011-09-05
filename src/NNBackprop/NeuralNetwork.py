@@ -13,13 +13,12 @@ from NNUtils import NNUtils
 
 
 class NeuralNetwork():
-    def __init__(self, name=None, n_inputs=None, n_hiddens=0, n_outputs=0,
-                 learn_rate=.35, momentum=1.0, training_vectors=None, 
-                 training_file=None, network_state_file=None, 
+    def __init__(self, name=None, n_inputs=0, n_hiddens=0, n_outputs=0,
+                 learn_rate=.35, momentum=1.0, 
+                 network_state_file=None, 
                  print_flags=('all'), 
-                 moving_window_size=None, moving_window_step_size=None,
                  save_network=False, save_network_state_flags=('all')):
-        """initialization routing for the NeuralNetwork object"""
+        """initialization routine for the NeuralNetwork object"""
         self.set_name(name)
         self.set_learning_rate(learn_rate)
         self.set_momentum(momentum)
@@ -36,9 +35,10 @@ class NeuralNetwork():
         if network_state_file:
             self.load_network_state(network_state_file)
 
-    def create_network_architecture(self, n_inputs=None, n_hiddens=None, 
-                                    n_outputs=None):  
+    def create_network_architecture(self, n_inputs, n_hiddens, n_outputs):  
         """create a NeuralNetwork object with a specific architecture"""
+
+        # lists of stuff we will need
         self.inputs             = []
         self.hiddens            = []
         self.outputs            = [] 
@@ -48,6 +48,7 @@ class NeuralNetwork():
         # initialize a bias neuron for each layer
         self.hidden_bias_neuron = Neurons.BiasNeuron('hidden')
         self.output_bias_neuron = Neurons.BiasNeuron('output')
+
         # create neurons at each layer
         self.inputs  = [Neurons.InputNeuron(i)  for i in xrange(int(n_inputs))]
         self.hiddens = [Neurons.HiddenNeuron(i) for i in xrange(int(n_hiddens))]
@@ -124,10 +125,6 @@ class NeuralNetwork():
         for i in xrange(len(output_vector)):
             self.outputs[i].expected_value = float(output_vector[i])
         
-    def set_name(self, name):
-        """give the network a name for humans to identify it"""
-        self.name = name
-    
     def set_learning_rate(self, learn_rate):
         """set the learning rate of the network"""
         self.learn_rate = learn_rate    
@@ -149,20 +146,27 @@ class NeuralNetwork():
         """set the max scale value"""
         self.scale_max = scale_max
      
-    # present correct patterns until network error is below threshold training
     def training_loop(self, max_epochs=None, mse_threshold=None, 
                       rmse_threshold=None, tsse_threshold=None, 
                       print_network_state=False):
+        """
+        present correct patterns until network error is below threshold training
+        """
         self.start_time = time.time()
         self.epoch_i = 0
-        print '\n###\n### Training NN with training set...\n###'
+
+        # loop forever until a threshold has been met
         while True:
+
+            # check if max epochs threshold has been reached
             if max_epochs:
                 if not hasattr(self, 'max_epochs'):
                     self.max_epochs = max_epochs
                 else:
                     if self.epoch_i >= self.max_epochs:
                         break 
+
+            # check if an error threshold has been reached
             if mse_threshold:
                 mse = self.get_mse()
                 if mse and mse < mse_threshold: 
@@ -175,8 +179,11 @@ class NeuralNetwork():
                 rmse = self.get_rmse()
                 if rmse and rmse < rmse_threshold: 
                     break
+
+            # present each training vector to the network and back propagate
+            # weights and error signals
             for training_vector in self.training_vectors:
-                # set network's inputs to inputs provides by a training vector
+                # set network's inputs to inputs provided by a training vector
                 self.set_inputs(training_vector[0])
                 # set network's expected outputs to train against
                 self.set_expected_outputs(training_vector[1])    
@@ -184,6 +191,7 @@ class NeuralNetwork():
                 self.feed_forward()            
                 # propagate errors and weights (connection strengths) backwards
                 self.backpropagate_errors()
+
             self.epoch_i += 1
             #NNUtils.save_obj_to_file(self, '.', self.epoch_i)
             #sys.exit()
@@ -309,9 +317,11 @@ class NeuralNetwork():
             # set the output neuron's value
             self.outputs[output_neuron.index].value = self._activation_function(sum)
             
-    # send error signals from output neurons back to input links,
-    # and adjust all weights according to new error signals / values
     def backpropagate_errors(self):       
+        """
+        Send error signals from output neurons back to input links.
+        Adjust all weights according to new error signals / values.
+        """
         self._bp_calc_output_error_signals()
         self._bp_calc_hidden_error_signals()
         self._bp_calc_output_to_hidden_weights()
@@ -437,84 +447,75 @@ class NeuralNetwork():
     
     def set_name(self, name):
         """set name for the NeuralNetwork object"""
+        if name == None:
+            name = 'Unnamed Neural Network' 
         self.name = name
-    
+
+    def _in_network_stage_flags(self, key):
+        if (key in self.save_network_state_flags or 
+            'all' in  self.save_network_state_flags):
+            return True
+        return False
+
     def save_network_state(self, filepath):
         """output the network state to a file"""
         now = str(datetime.datetime.now())
-        file = open(filepath, "w")
-        file.write(''.join(['date,', str(now), '\n',
-                            'name,', self.name, '\n',
-                            'learning_rate,',  str(self.learn_rate), '\n',
-                            'momentum,', str(self.momentum), '\n',
-                            'architecture,', str(len(self.inputs)), ',', 
-                                str(len(self.hiddens)),  ',', 
-                                str(len(self.outputs)), '\n',
-                            'scale_min,', str(self.scale_min), '\n',
-                            'scale_max,', str(self.scale_max), '\n',
-                            ]))
+        fp = open(filepath, "w")
+        fp.write(''.join(['date,', now, '\n',
+                          'name,', self.name, '\n',
+                          'learning_rate,',  str(self.learn_rate), '\n',
+                          'momentum,', str(self.momentum), '\n',
+                          'architecture,', str(len(self.inputs)), ',', 
+                              str(len(self.hiddens)),  ',', 
+                              str(len(self.outputs)), '\n',
+                          'scale_min,', str(self.scale_min), '\n',
+                          'scale_max,', str(self.scale_max), '\n',
+                          ]))
         lines = []
-        if ('tsse' in self.save_network_state_flags 
-            or 'all' in self.save_network_state_flags):
+        if self._in_network_stage_flags('tsse'):
             lines.append('tsse,%.12f' % self.get_tsse())
-        if ('mse' in self.save_network_state_flags 
-            or 'all' in self.save_network_state_flags):
+        if self._in_network_stage_flags('mse'): 
             lines.append('mse,%.12f' % self.get_mse())
-        if ('rmse' in self.save_network_state_flags 
-            or 'all' in self.save_network_state_flags):
+        if self._in_network_stage_flags('rmse'): 
             lines.append('rmse,%.12f' % self.get_rmse())
-        if ('runtime' in self.save_network_state_flags 
-            or 'all' in self.save_network_state_flags):
+        if self._in_network_stage_flags('runtime'): 
             lines.append('runtime,%sh,%sm,%ss' % self.parse_runtime())
-        if ('epochs' in self.save_network_state_flags 
-            or 'all' in self.save_network_state_flags):
+        if self._in_network_stage_flags('epochs'): 
             lines.append('epochs,%s,%s' % (self.epoch_i, self.max_epochs))
-        if ('progress' in self.save_network_state_flags 
-            or 'all' in self.save_network_state_flags):
-            percent = float(self.epoch_i) / float(self.max_epochs) * 100.
+        if self._in_network_stage_flags('progress'): 
+            percent = float(self.epoch_i) / float(self.max_epochs) * 100.0
             lines.append('progress,%s%%' % percent)
-        if ('input_values' in self.save_network_state_flags 
-            or 'all' in self.save_network_state_flags):
+        if self._in_network_stage_flags('input_values'): 
             lines.append('input_values,' + 
                          ','.join(['%s'%i.value for i in self.inputs]))
-        if ('output_values' in self.save_network_state_flags 
-            or 'all' in self.save_network_state_flags):
+        if self._in_network_stage_flags('output_values'): 
             lines.append('outputs_values,' + 
                          ','.join(['%s'%i.value for i in self.outputs]))
-        if ('output_expected_values' in self.save_network_state_flags
-            or 'all' in self.save_network_state_flags):
+        if self._in_network_stage_flags('output_expected_values'):
             lines.append('output_expected_values,' +
                          ','.join(['%s'%i.expected_value for i in self.outputs]))
-        if ('input2hidden_links' in self.save_network_state_flags 
-            or 'all' in self.save_network_state_flags):
+        if self._in_network_stage_flags('input2hidden_links'): 
             for hidden_neuron in self.hiddens:
                 for hidden_link in hidden_neuron.input_links:
                     lines.append(','.join(['IH', str(hidden_link.in_index), 
                                            str(hidden_link.out_index),
                                            str(hidden_link.weight)]))
-        if ('hidden_bias_links' in self.save_network_state_flags 
-            or 'all' in self.save_network_state_flags):
+        if self._in_network_stage_flags('hidden_bias_links'): 
             for hidden_bias_link in self.hidden_bias_links:
                 lines.append(','.join(['HB', str(hidden_bias_link.out_index),
                                        str(hidden_bias_link.weight) ]))
-        if ('hidden2output_links' in self.save_network_state_flags 
-            or 'all' in self.save_network_state_flags):
+        if self._in_network_stage_flags('hidden2output_links'):
             for hidden_neuron in self.hiddens:
                 for output_link in hidden_neuron.output_links:
                     lines.append(','.join(['HO', str(output_link.in_index),
                                            str(output_link.out_index),
                                            str(output_link.weight)]))
-        if ('output_bias_links' in self.save_network_state_flags 
-            or 'all' in self.save_network_state_flags):
+        if self._in_network_stage_flags('output_bias_links'): 
             for output_bias_link in self.output_bias_links:
                 lines.append(','.join(['OB', str(output_bias_link.out_index),
                                        str(output_bias_link.weight)]))
-        if ('training_file_path' in self.save_network_state_flags 
-            or 'all' in self.save_network_state_flags):
-            if hasattr(self, 'training_file_path'):
-                lines.append('training_file_path,%s' % self.training_file_path)
-        file.write('\n'.join(lines))
-        file.close()
+        fp.write('\n'.join(lines))
+        fp.close()
     
     def load_network_state(self, filepath):
         """load an existing network state from a file"""
