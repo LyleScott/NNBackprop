@@ -2,13 +2,7 @@
 Author : Lyle Scott III    lyle@digitalfoo.net
 Date   : 2011-03-26
 """
-import cPickle
-import datetime
-import math
 import random
-import sys
-import time
-import NNUtils
 
 
 class NeuronLink():

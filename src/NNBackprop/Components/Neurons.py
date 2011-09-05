@@ -3,11 +3,6 @@ Author : Lyle Scott III    lyle@digitalfoo.net
 Date   : 2011-03-26
 """
 
-#class Neuron():
-#    def __init__(self, index, value=None):
-#        pass
-
-
 class InputNeuron():
     def __init__(self, index, value=None):
         self.index = index
