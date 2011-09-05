@@ -15,9 +15,8 @@ from NNUtils import NNUtils
 class NeuralNetwork():
     def __init__(self, name=None, n_inputs=0, n_hiddens=0, n_outputs=0,
                  learn_rate=.35, momentum=1.0, 
-                 network_state_file=None, 
-                 print_flags=('all'), 
-                 save_network=False, save_network_state_flags=('all')):
+                 network_state_file=None, print_flags=('all'), 
+                 save_network=False):
         """initialization routine for the NeuralNetwork object"""
         self.set_name(name)
         self.set_learning_rate(learn_rate)
@@ -98,9 +97,10 @@ class NeuralNetwork():
                 column_number=col_num))
     """
 
-    def set_training_vectors(self, data):
+    def set_training_vectors(self, vectors, scale_min, scale_max):
         """set the training vectors for the network"""
-        self.training_vectors = data
+        self.training_vectors = vectors
+        self.set_scale_minmax(scale_min, scale_max)
 
     def get_training_vectors(self):
         """get all of the training vectors for the network"""
@@ -451,7 +451,7 @@ class NeuralNetwork():
             name = 'Unnamed Neural Network' 
         self.name = name
 
-    def _in_network_stage_flags(self, key):
+    def _in_network_state_flags(self, key):
         if (key in self.save_network_state_flags or 
             'all' in  self.save_network_state_flags):
             return True
@@ -460,57 +460,49 @@ class NeuralNetwork():
     def save_network_state(self, filepath):
         """output the network state to a file"""
         now = str(datetime.datetime.now())
+        progress = float(self.epoch_i) / float(self.max_epochs) * 100.0
+        input_values = ','.join(['%s'%i.value for i in self.inputs])
+        output_values = ','.join(['%s'%i.value for i in self.outputs])
+        expected_values = ','.join(['%s'%i.expected_value 
+                                    for i in self.outputs])
         fp = open(filepath, "w")
-        fp.write(''.join(['date,', now, '\n',
-                          'name,', self.name, '\n',
-                          'learning_rate,',  str(self.learn_rate), '\n',
-                          'momentum,', str(self.momentum), '\n',
-                          'architecture,', str(len(self.inputs)), ',', 
-                              str(len(self.hiddens)),  ',', 
-                              str(len(self.outputs)), '\n',
-                          'scale_min,', str(self.scale_min), '\n',
-                          'scale_max,', str(self.scale_max), '\n',
+        fp.write('\n'.join(['date,%s\n' % now,
+                            'name,%s\n' % self.name,
+                            'learning_rate,%s\n' % self.learn_rate,
+                            'momentum,', str(self.momentum), '\n',
+                            'architecture,%s,%s,%s\n' % (len(self.inputs), 
+                                                         len(self.hiddens), 
+                                                         len(self.outputs)),
+                            'scale_min,%s\n' % self.scale_min,
+                            'scale_max,%s\n' % self.scale_max,
+                            'tsse,%.12f\n' % self.get_tsse(),
+                            'mse,%.12f\n' % self.get_mse(),
+                            'rmse,%.12f\n' % self.get_rmse(),
+                            'runtime,%sh,%sm,%ss' % self.parse_runtime(),
+                            'epochs,%s,%s' % (self.epoch_i, self.max_epochs),
+                            'progress,%s%%' % progress,
+                            'input_values,%s\n' % input_values,             
+                            'outputs_values,%s\n' % output_values,
+                            'output_expected_values,%s\n' % expected_values,
                           ]))
         lines = []
-        if self._in_network_stage_flags('tsse'):
-            lines.append('tsse,%.12f' % self.get_tsse())
-        if self._in_network_stage_flags('mse'): 
-            lines.append('mse,%.12f' % self.get_mse())
-        if self._in_network_stage_flags('rmse'): 
-            lines.append('rmse,%.12f' % self.get_rmse())
-        if self._in_network_stage_flags('runtime'): 
-            lines.append('runtime,%sh,%sm,%ss' % self.parse_runtime())
-        if self._in_network_stage_flags('epochs'): 
-            lines.append('epochs,%s,%s' % (self.epoch_i, self.max_epochs))
-        if self._in_network_stage_flags('progress'): 
-            percent = float(self.epoch_i) / float(self.max_epochs) * 100.0
-            lines.append('progress,%s%%' % percent)
-        if self._in_network_stage_flags('input_values'): 
-            lines.append('input_values,' + 
-                         ','.join(['%s'%i.value for i in self.inputs]))
-        if self._in_network_stage_flags('output_values'): 
-            lines.append('outputs_values,' + 
-                         ','.join(['%s'%i.value for i in self.outputs]))
-        if self._in_network_stage_flags('output_expected_values'):
-            lines.append('output_expected_values,' +
-                         ','.join(['%s'%i.expected_value for i in self.outputs]))
-        if self._in_network_stage_flags('input2hidden_links'): 
+        if self._in_network_state_flags('input2hidden_links'): 
             for hidden_neuron in self.hiddens:
                 for hidden_link in hidden_neuron.input_links:
                     lines.append(','.join(['IH', str(hidden_link.in_index), 
                                            str(hidden_link.out_index),
                                            str(hidden_link.weight)]))
-        if self._in_network_stage_flags('hidden_bias_links'): 
+        if self._in_network_state_flags('hidden_bias_links'): 
             for hidden_bias_link in self.hidden_bias_links:
                 lines.append(','.join(['HB', str(hidden_bias_link.out_index),
                                        str(hidden_bias_link.weight) ]))
-        if self._in_network_stage_flags('hidden2output_links'):
+        if self._in_network_state_flags('hidden2output_links'):
             for hidden_neuron in self.hiddens:
                 for output_link in hidden_neuron.output_links:
                     lines.append(','.join(['HO', str(output_link.in_index),
                                            str(output_link.out_index),
                                            str(output_link.weight)]))
-        if self._in_network_stage_flags('output_bias_links'): 
+        if self._in_network_state_flags('output_bias_links'): 
             for output_bias_link in self.output_bias_links:
                 lines.append(','.join(['OB', str(output_bias_link.out_index),
                                        str(output_bias_link.weight)]))
