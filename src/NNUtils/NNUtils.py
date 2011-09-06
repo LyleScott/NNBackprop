@@ -36,8 +36,6 @@ import sys
 import time
 
 
-#min_num = max_num = 0
-
 # generate a range of floating point values
 def frange(start, stop, n):
     L = [0.0] * n
@@ -124,14 +122,6 @@ def load_testing_file(path, column_number=0):
     fp.close()
     return datapoints
 
-#def shutdown(*args):
-#    global NN
-#    NN.save_to_file("../saved_nn/sigterm.txt")
-#    print "CATCHING EXIT..."
-#    sys.exit()
-#signal.signal(signal.SIGTERM, shutdown)
-
-
 def line_mse(observed_points, actual_points):
     if len(observed_points) != len(actual_points):
         print "ERROR, can't take MSE if observed != actual number of points"
@@ -140,7 +130,6 @@ def line_mse(observed_points, actual_points):
     for i in xrange(len(observed_points)):
         mse += (actual_points[i] - observed_points[i][0]) ** 2
     return mse / len(observed_points)
-
 
 def prediction_analysis(dir):
     DIR_NAME = "../saved_nn/" + dir

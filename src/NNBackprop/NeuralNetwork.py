@@ -15,7 +15,9 @@ from NNUtils import NNUtils
 class NeuralNetwork():
     def __init__(self, name=None, learn_rate=0.35, momentum=1.0, 
                  network_state_file=None, 
-                 save_network_state=False, save_network_state_obj=False):
+                 save_network_state=False, save_network_state_epoch_modulo=0,
+                 save_network_state_iteration_modulo=0,
+                 save_network_state_obj=False):
         """initialization routine for the NeuralNetwork object"""
 
         # initialize a network from a csv'ish like file
@@ -23,11 +25,20 @@ class NeuralNetwork():
             self.load_network_state(network_state_file)
             return
 
+        # dummy proof...
+        if save_network_state:
+            if (not save_network_state_epoch_modulo and 
+                not save_network_state_iteration_modulo):
+                raise Exception('save_network_state specified in __init__ but '
+                                'no modulo option was set')
+
         # set defaults
         self.set_name(name)
         self.set_learning_rate(learn_rate)
         self.set_momentum(momentum)
         self.save_network_state = save_network_state
+        self.save_network_state_epoch_modulo = save_network_state_epoch_modulo
+        self.save_network_state_iteration_modulo = save_network_state_iteration_modulo
         self.scale_min = None
         self.scale_max = None
 
@@ -150,24 +161,25 @@ class NeuralNetwork():
         """set the max scale value"""
         self.scale_max = scale_max
      
-    def training_loop(self, max_epochs=None, mse_threshold=None, 
+    def training_loop(self, epochs_threshold=None, mse_threshold=None, 
                       rmse_threshold=None, tsse_threshold=None, 
                       print_network_state=False):
         """
-        present correct patterns until network error is below threshold training
+        present correct patterns until network error is below some threshold 
         """
         self.start_time = time.time()
         self.epoch_i = 0
+        self.iteration_i = 0
 
         # loop forever until a threshold has been met
         while True:
 
             # check if max epochs threshold has been reached
-            if max_epochs:
-                if not hasattr(self, 'max_epochs'):
-                    self.max_epochs = max_epochs
+            if epochs_threshold:
+                if not hasattr(self, 'epochs_threshold'):
+                    self.epochs_threshold = epochs_threshold
                 else:
-                    if self.epoch_i >= self.max_epochs:
+                    if self.epoch_i >= self.epochs_threshold:
                         break 
 
             # check if an error threshold has been reached
@@ -195,11 +207,23 @@ class NeuralNetwork():
                 self.feed_forward()            
                 # propagate errors and weights (connection strengths) backwards
                 self.backpropagate_errors()
-            self.epoch_i += 1
+                self.iteration_i += 1
+                if (self.save_network_state and 
+                    self.save_network_state_iteration_modulo and
+                    self.iteration_i % self.save_network_state_iteration_modulo == 0):
+                    path = 'output/network_state_epoch:%s-iteration:%s.csv' %\
+                                              (self.epoch_i, self.iteration_i,)
+                    self.save_network_state_file(path)
+
             if print_network_state is True:
                 self.print_network_state()
-        #if self.save_network is True:
-        #    self.save_network_state('network_state.csv')
+
+            self.epoch_i += 1
+            if (self.save_network_state and 
+                self.save_network_state_epoch_modulo and
+                self.epoch_i % self.save_network_state_epoch_modulo == 0):
+                path = 'output/network_state_epoch:%s.csv' % self.epoch_i
+                self.save_network_state_file(path)
         
     def print_network_state(self):
         """print the current network state in Human readable form"""
@@ -224,13 +248,13 @@ class NeuralNetwork():
         if runtime:
             print 'runtime      : %sh %sm %ss' % runtime
 
-        if hasattr(self, 'max_epochs') and self.max_epochs:
-            print 'epochs       : %s/%s' % (self.epoch_i, self.max_epochs)
+        if hasattr(self, 'epochs_threshold') and self.epochs_threshold:
+            print 'epochs       : %s/%s' % (self.epoch_i, self.epochs_threshold)
         else:
             print 'epochs       : %s' % (self.epoch_i)
                 
-        if hasattr(self, 'max_epochs') and self.max_epochs:
-            percent = float(self.epoch_i) / float(self.max_epochs) * 100.
+        if hasattr(self, 'epochs_threshold') and self.epochs_threshold:
+            percent = float(self.epoch_i) / float(self.epochs_threshold) * 100.
             print 'progress     : %s%%' % percent
     
     def parse_runtime(self):
@@ -437,9 +461,9 @@ class NeuralNetwork():
     def save_network_state_file(self, filepath):
         """output the network state to a file"""
         now = str(datetime.datetime.now())
-        if hasattr(self, 'max_epochs'):
-            epochs = 'epochs,%s,%s' % (self.epoch_i, self.max_epochs)
-            progress = float(self.epoch_i) / float(self.max_epochs) * 100.0
+        if hasattr(self, 'epochs_threshold'):
+            epochs = 'epochs,%s,%s' % (self.epoch_i, self.epochs_threshold)
+            progress = float(self.epoch_i) / float(self.epochs_threshold) * 100.0
         else:
             epochs = 'epochs,%s' % self.epoch_i
             progress = 'n/a'
@@ -462,6 +486,7 @@ class NeuralNetwork():
                             'rmse,%.12f' % self.get_rmse(),
                             'runtime,%sh,%sm,%ss' % self.parse_runtime(),
                             epochs,
+                            'iterations,%s' % self.iteration_i,
                             'progress,%s' % progress,
                             'input_values,%s' % input_values,             
                             'output_values,%s' % output_values,
@@ -493,7 +518,6 @@ class NeuralNetwork():
             lines.append(','.join(['OB', str(output_bias_link.out_index),
                                    str(output_bias_link.weight)]))
         fp.write('\n'.join(lines))
-
         fp.close()
     
     def load_network_state(self, filepath):
@@ -524,7 +548,9 @@ class NeuralNetwork():
                 split = line.split(',')
                 self.epoch_i = int(split[1])
                 if len(split) == 3:
-                    self.max_epochs = int(split[2])
+                    self.epochs_threshold = int(split[2])
+            elif line.startswith('iterations,'):
+                self.iterations_i = line.split(',')[1]
             elif line.startswith('input_values,'):
                 inputs = []
                 for input in line.split(',')[1:]:
