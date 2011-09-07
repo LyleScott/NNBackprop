@@ -73,11 +73,12 @@ class NeuralNetwork():
             for input_neuron in self.inputs:
                 self.hiddens[hidden_neuron.index].input_links.append(
                     Links.NeuronLink(input_neuron.index, hidden_neuron.index, 
-                               'hidden')
+                                     'hidden', n_inputs+1)
                 )
             # create hidden_bias<---->hidden neuron links
             self.hidden_bias_links.append(
-               Links.NeuronLink(None, hidden_neuron.index, 'hidden_bias')
+               Links.NeuronLink(None, hidden_neuron.index, 'hidden_bias',
+                                n_inputs+1)
             )
         
         # create hidden<---->output neuron links
@@ -85,13 +86,14 @@ class NeuralNetwork():
             for output_neuron in self.outputs:
                 self.hiddens[hidden_neuron.index].output_links.append(
                     Links.NeuronLink(hidden_neuron.index, 
-                               output_neuron.index, 'output')
+                               output_neuron.index, 'output', n_outputs+1)
                 )
 
         # create output_bias<---->output neuron links
         for output_neuron in self.outputs:
             self.output_bias_links.append(
-                Links.NeuronLink(None, output_neuron.index, 'output_bias')
+                Links.NeuronLink(None, output_neuron.index, 'output_bias',
+                                 n_outputs+1)
             )
 
     """
