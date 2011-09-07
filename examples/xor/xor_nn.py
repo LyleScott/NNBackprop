@@ -32,6 +32,10 @@ def main():
 
     nnet.print_network_state()
 
+    print '-'*80
+
+    print nnet
+
     # plot the activation due to a bunch of numbers 0-1
     # 1) uncomment save_network_state and save_network_state_iteration_modulo 
     #    in the above constructor.

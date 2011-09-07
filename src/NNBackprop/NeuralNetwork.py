@@ -591,3 +591,14 @@ class NeuralNetwork():
             elif line.startswith('training_vectors,'):
                 self.training_vectors = eval(line[line.find(',')+1:])
         fp.close()
+
+    def __str__(self):
+        return '\n'.join([str(neuron) for neuron in self.inputs] +
+                         [str(link) for neuron in self.hiddens 
+                                    for link in neuron.input_links] +
+                         [str(link) for link in self.hidden_bias_links] +
+                         [str(neuron) for neuron in self.hiddens] +
+                         [str(link) for neuron in self.hiddens 
+                                    for link in neuron.output_links] +
+                         [str(link) for link in self.output_bias_links] +
+                         [str(neuron) for neuron in self.outputs])
