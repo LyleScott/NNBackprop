@@ -1,0 +1,10 @@
+Lyle Scott, III
+lyle@digitalfoo.net
+
+To run an example, 'source' the example's envsetup.sh file to get a proper
+PYTHONPATH for use with NNBackprop modules and try to run the example without 
+any arguments. If the example needs args, it will print the usage..
+$> cd <example directory>/<example>
+$> source entsetup.sh
+$> python <example>.py
+
