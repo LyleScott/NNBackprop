@@ -31,6 +31,7 @@ import cPickle
 import matplotlib
 matplotlib.use('agg')
 import matplotlib.pyplot as plt
+import os
 import re
 import sys
 import time
@@ -131,6 +132,7 @@ def line_mse(observed_points, actual_points):
         mse += (actual_points[i] - observed_points[i][0]) ** 2
     return mse / len(observed_points)
 
+"""
 def prediction_analysis(dir):
     DIR_NAME = "../saved_nn/" + dir
     
@@ -196,14 +198,17 @@ def prediction_analysis(dir):
             
         print "DONE!"
         print os.path.abspath(DIR_NAME)    
+"""
 
-def save_nn_obj_to_file(self, obj, path, epoch='default'):
-    fp = open('%s/%s.pkl' % (path, epoch) , 'wb')
-    cPickle.dump(self, fp)
+def save_nn_obj_to_file(obj, path, filename):
+    fullpath = '%s/%s.pkl' % (path, filename) 
+    fp = open(fullpath, 'wb')
+    cPickle.dump(obj, fp)
     fp.close()
     
-def load_nn_obj_from_file(self, path, epoch='default'):
-    fp = open('%s/%s.pkl' % (path, epoch) , 'rb')
+def load_nn_obj_from_file(path, filename):
+    fullpath = '%s/%s.pkl' % (path, filename)
+    fp = open(fullpath, 'rb')
     obj = cPickle.load(fp)
     fp.close()
     return obj 
