@@ -28,13 +28,11 @@ ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 """
 import cPickle
-import matplotlib
-matplotlib.use('agg')
-import matplotlib.pyplot as plt
-import os
+#import matplotlib
+#matplotlib.use('agg')
+#import matplotlib.pyplot as plt
 import re
 import sys
-import time
 
 
 # generate a range of floating point values
@@ -68,33 +66,36 @@ def parse_training_file(filepath, n_inputs, n_outputs, delimiter=r'\s+'):
 
     return (vectors, min_n, max_n,)
               
-def parse_windowed_training_file(path, input_win_size, 
-                                 output_win_size, step_size, column_number=0):
-    lines = []
-    columns = []
-    fp = open(path)
-    for line in fp:
-        if not line:         break     # EOF
-        if not line.strip(): continue  # strip \n, \r, \t, spaces, etc
-        if line[0] == "#":   continue  # skip a comment
-        datapoint = float(line.rstrip().split()[column_number]) 
-        lines.append(datapoint)
+def parse_windowed_training_file(filepath, input_win_size, output_win_size, 
+                                 step_size, column_number=0):
+    datapoints = []
+    fp = open(filepath)
+    for datapoint in fp:
+        if not datapoint:         break     # EOF
+        if not datapoint.strip(): continue  # strip \n, \r, \t, spaces, etc
+        if datapoint[0] == "#":   continue  # skip a comment 
+        datapoint = float(datapoint)
+        datapoints.append(datapoint)
+    fp.close()
         
-    if input_win_size > len(lines):
-        print ''.join(['ERROR, windows_size (', str(input_win_size),
-                       ') > number of data points (', str(len(lines)), ')'])
-        sys.exit(-1)
+    if input_win_size > len(datapoints):
+        err = 'ERROR, windows_size (%s) > number of data points (%s)' % \
+                                              (input_win_size, len(datapoints))
+        raise Exception(err)
     
-    minn, maxn = normalize(lines)
+    minn, maxn = normalize(datapoints)
     
     # put into an array of input/output vector pairs
     # ie  [ [i0, i1, ..., iN] , [o0, o1, ..., iN] ]
     vectors = []
-    for line_i in xrange(0, len(lines)-input_win_size-output_win_size+1, step_size):
-        input_vector  = [lines[line_i+i] for i in xrange(input_win_size)]
-        output_vector = [lines[line_i+input_win_size+i] for i in xrange(output_win_size)]
+    end = (len(datapoints) - input_win_size - output_win_size) + 1
+    for line_i in xrange(0, end, step_size):
+        input_vector  = [datapoints[line_i + i] 
+                         for i in xrange(input_win_size)]
+        output_vector = [datapoints[line_i + input_win_size + i] 
+                         for i in xrange(output_win_size)]
         vectors.append([input_vector, output_vector])
-    print '###\n### Parsed %s vectors from %s\n###' % (len(vectors), path)
+    print '###\n### Parsed %s vectors from %s\n###' % (len(vectors), filepath)
     return (vectors, minn, maxn)
         
 # put all values between [0, 1]
@@ -111,10 +112,10 @@ def denormalize(vectors, minn, maxn):
         vectors[i] = vectors[i] * (maxn - minn) + minn
     return vectors
         
-def load_testing_file(path, column_number=0):
+def load_testing_file(filepath, column_number=0):
     # put all lines into an array (lines) for easy access
     datapoints = []
-    fp = open(path)
+    fp = open(filepath)
     for line in fp:
         if not line:         break     # EOF
         if not line.strip(): continue  # strip \n, \r, \t, spaces, etc
@@ -200,15 +201,13 @@ def prediction_analysis(dir):
         print os.path.abspath(DIR_NAME)    
 """
 
-def save_nn_obj_to_file(obj, path, filename):
-    fullpath = '%s/%s.pkl' % (path, filename) 
-    fp = open(fullpath, 'wb')
+def save_nn_obj_to_file(obj, filepath): 
+    fp = open(filepath, 'wb')
     cPickle.dump(obj, fp)
     fp.close()
     
-def load_nn_obj_from_file(path, filename):
-    fullpath = '%s/%s.pkl' % (path, filename)
-    fp = open(fullpath, 'rb')
+def load_nn_obj_from_file(filepath):
+    fp = open(filepath, 'rb')
     obj = cPickle.load(fp)
     fp.close()
     return obj 

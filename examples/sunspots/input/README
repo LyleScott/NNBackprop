@@ -1,0 +1,28 @@
+Lyle Scott III
+lyle@digitalfoo.net
+--------------------------------------------------------------------------------
+
+SIDC - Solar Influences Data Analysis Center
+http://sidc.oma.be/sunspot-data/
+
+1) dayssn.dat : daily sunspot numbers from 1812
+
+    1st column : year, month and day
+    2d  column : year and fraction of year (in julian years of 365.25 days)
+    3d  column : sunspot number
+
+2) monthssn.dat : monthly and monthly smoothed sunspot numbers from 1750
+
+    1st column : year and month
+    2d  column : year and fraction of year (in julian years of 365.25 days)
+              the reference date corresponds to the middle of the month
+    3d  column : monthly sunspot number
+    4th column : monthly smoothed sunspot number 
+ 
+    R12=(R-6/2 +R-5+...+R+...+R5+R6/2)/12
+
+3) yearssn.dat : yearly sunspot number, from 1700
+
+    1st column : year
+    2d  column : sunspot number
+

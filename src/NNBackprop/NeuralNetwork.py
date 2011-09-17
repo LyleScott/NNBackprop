@@ -4,15 +4,10 @@ Date   : 2011-03-26
 """
 import datetime
 import math
-import sys
 import time
-
-import os
-import pickle
 
 from NNBackprop.Components import Neurons
 from NNBackprop.Components import Links
-from NNUtils import NNUtils
 
 
 class NeuralNetwork():
@@ -213,33 +208,39 @@ class NeuralNetwork():
                 # propagate errors and weights (connection strengths) backwards
                 self.backpropagate_errors()
                 self.iteration_i += 1
+                """
                 if (self.save_network_state and 
                     self.save_network_state_iteration_modulo and
                     self.iteration_i % self.save_network_state_iteration_modulo == 0):
                     path = 'output/network_state_epoch:%s-iteration:%s.csv' %\
                                               (self.epoch_i, self.iteration_i,)
                     self.save_network_state_file(path)
+                """
 
             if print_network_state is True:
                 self.print_network_state()
 
             self.epoch_i += 1
+
+            """
             if (self.save_network_state and 
                 self.save_network_state_epoch_modulo and
                 self.epoch_i % self.save_network_state_epoch_modulo == 0):
                 path = 'output/network_state_epoch:%s.csv' % self.epoch_i
                 self.save_network_state_file(path)
+            """
             
             """
-            if not os.path.exists('activations'):
-                os.mkdir('activations')
-            fp = open('activations/act%s.csv' % self.epoch_i, 'w')
-            for x in NNUtils.frange(0, 1, 100):
-                for y in NNUtils.frange(0, 1, 100):
-                    self.set_inputs([x, y])
-                    self.feed_forward()
-                    fp.write('%s,%s,%s\n' % (x, y, self.get_outputs()[0],))
-            fp.close()
+            if self.epoch_i % 100 == 0:
+                if not os.path.exists('activations'):
+                    os.mkdir('activations')
+                fp = open('activations/act%s.csv' % self.epoch_i, 'w')
+                for x in NNUtils.frange(0, 1, 100):
+                    for y in NNUtils.frange(0, 1, 100):
+                        self.set_inputs([x, y])
+                        self.feed_forward()
+                        fp.write('%s,%s,%s\n' % (x, y, self.get_outputs()[0],))
+                fp.close()
             """
         
     def print_network_state(self):
@@ -548,8 +549,8 @@ class NeuralNetwork():
             if line.startswith('name,'):
                 self.name = line.split(',')[1]
             elif line.startswith('architecture'):
-                 ninputs, nhiddens, noutputs = line.split(',')[1:4]
-                 self.create_network_architecture(ninputs, nhiddens, noutputs)
+                ninputs, nhiddens, noutputs = line.split(',')[1:4]
+                self.create_network_architecture(ninputs, nhiddens, noutputs)
             elif line.startswith('learning_rate,'):
                 self.set_learning_rate(line.split(',')[1])
             elif line.startswith('momentum,'):
