@@ -133,20 +133,25 @@ def line_mse(observed_points, actual_points):
         mse += (actual_points[i] - observed_points[i][0]) ** 2
     return mse / len(observed_points)
 
+# !! REQUIRES python-matplotlib library to be installed...
 def xy_prediction_plot(x1, x2, filepath='.', title='', x1_label='', x2_label='',
                        x1_axis_label='', x2_axis_label='', 
-                       x1_axis_color='blue', x2_axis_color='red'):
-    #matplotlib.use('agg')
+                       x1_axis_color='blue', x2_axis_color='red',
+                       x_minmax=None, y_minmax=None):
+
     import matplotlib.pyplot as plt
-    
+        
     plt.figure()
-    plt.plot(range(len(x1)), x1, label=x1_label, linewidth=2, color=x1_axis_color)
-    plt.plot(range(len(x2)), x2, label=x2_label, color=x2_axis_color)
     plt.title(title)    
-    plt.xlabel(x1_label)
-    plt.ylabel(x2_label)
-    #plt.ylim((0, 200))
-    plt.legend()
+    plt.plot(range(len(x1)), x1, label=x1_label, color=x1_axis_color, linewidth=2)
+    plt.plot(range(len(x2)), x2, label=x2_label, color=x2_axis_color)
+    plt.legend(loc='upper left')
+    plt.xlabel(x1_axis_label)
+    plt.ylabel(x2_axis_label)
+    if x_minmax:
+        plt.xlim(x_minmax)
+    if y_minmax:
+        plt.ylim(y_minmax)
     plt.savefig(filepath)
     #plt.show()
     

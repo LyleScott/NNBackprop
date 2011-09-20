@@ -57,7 +57,7 @@ def train(nnet, max_epochs, test_epoch_modulo=10, plot=False):
         
         if i % test_epoch_modulo == 0:
             nnet.print_network_state()
-            (x1, x2,) = test()
+            (estimated, actual,) = test()
             
             if plot != False:
                 directory = 'plots.%s' % suffix
@@ -66,11 +66,15 @@ def train(nnet, max_epochs, test_epoch_modulo=10, plot=False):
                     os.mkdir(directory)
                 
                 filepath = '%s/%s.png' % (directory, str(nnet.epoch_i).zfill(6))
+                title = '%s\nepoch %s' % (nnet.name, i)
                 
-                NNUtils.xy_prediction_plot(x1, x2, filepath=filepath, 
-                                           title='epoch %s' % i,
+                NNUtils.xy_prediction_plot(actual, estimated, filepath=filepath, 
+                                           title=title,
+                                           x1_label='Actual Values',
+                                           x2_label='Predicted Values',
                                            x1_axis_label='months into the future', 
-                                           x2_axis_label='monthly sunspot count')
+                                           x2_axis_label='monthly sunspot count',
+                                           y_minmax=(0,90))
         i += 1
 
 def test():
@@ -85,13 +89,15 @@ def test():
         inputs = nnet.get_inputs()
         outputs = nnet.get_outputs()
 
-        x1.extend(outputs)
-        x2.extend(nnet.get_validation_vectors()[sample_n][1])
+        x1.extend(NNUtils.denormalize(outputs, scale_min, scale_max))
+        validations = nnet.get_validation_vectors()[sample_n][1]
+        x2.extend(NNUtils.denormalize(validations, scale_min, scale_max))
         
-        predicted_value = NNUtils.denormalize(outputs, scale_min, scale_max)[0]
         actual_value = NNUtils.denormalize(
                                 nnet.get_validation_vectors()[sample_n][1],
                                 scale_min, scale_max)[0]
+                                
+        #predicted_value = NNUtils.denormalize(outputs, scale_min, scale_max)[0]
         #print '%s,%s' % (predicted_value, actual_value,)
 
         inputs = inputs[len(outputs):]
