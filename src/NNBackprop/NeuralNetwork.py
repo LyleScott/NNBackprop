@@ -116,6 +116,20 @@ class NeuralNetwork():
         """set the training vectors for the network"""
         self.training_vectors = vectors
         self.set_scale_minmax(scale_min, scale_max)
+        
+    def set_validation_vectors(self, vectors):
+        """keeps validation vectors attached to this object"""
+        self.validation_vectors = vectors
+        
+    def get_validation_vectors(self):
+        return self.validation_vectors
+    
+    def get_testing_vectors(self):
+        return self.testing_vectors
+        
+    def set_testing_vectors(self, vectors):
+        """keeps testing vectors attached to this object"""
+        self.testing_vectors = vectors
 
     def get_training_vectors(self):
         """get all of the training vectors for the network"""
@@ -157,6 +171,10 @@ class NeuralNetwork():
         """set the min scale value"""
         self.scale_min = scale_min
         
+    def get_scale_minmax(self):
+        """get the min and max scale values"""
+        return (self.scale_min, self.scale_max,)
+        
     def set_scale_max(self, scale_max):
         """set the max scale value"""
         self.scale_max = scale_max
@@ -173,76 +191,79 @@ class NeuralNetwork():
 
         # loop forever until a threshold has been met
         while True:
-
             # check if max epochs threshold has been reached
             if epochs_threshold:
                 if not hasattr(self, 'epochs_threshold'):
                     self.epochs_threshold = epochs_threshold
                 else:
                     if self.epoch_i >= self.epochs_threshold:
-                        break 
-
+                        return
+    
             # check if an error threshold has been reached
             if mse_threshold:
                 mse = self.get_mse()
                 if mse and mse < mse_threshold: 
-                    break
+                    return
             if tsse_threshold:
                 tsse = self.get_tsse() 
                 if tsse and tsse < tsse_threshold: 
-                    break
+                    return
             if rmse_threshold:
                 rmse = self.get_rmse()
                 if rmse and rmse < rmse_threshold: 
-                    break
-
-            # present each training vector to the network and back propagate
-            # weights and error signals
-            for training_vector in self.training_vectors:
-                # set network's inputs to inputs provided by a training vector
-                self.set_inputs(training_vector[0])
-                # set network's expected outputs to train against
-                self.set_expected_outputs(training_vector[1])    
-                # feed the inputs through to produce values at output neurons  
-                self.feed_forward()            
-                # propagate errors and weights (connection strengths) backwards
-                self.backpropagate_errors()
-                self.iteration_i += 1
-                """
-                if (self.save_network_state and 
-                    self.save_network_state_iteration_modulo and
-                    self.iteration_i % self.save_network_state_iteration_modulo == 0):
-                    path = 'output/network_state_epoch:%s-iteration:%s.csv' %\
-                                              (self.epoch_i, self.iteration_i,)
-                    self.save_network_state_file(path)
-                """
-
+                    return
+            self.train()
             if print_network_state is True:
                 self.print_network_state()
-
-            self.epoch_i += 1
-
-            """
-            if (self.save_network_state and 
-                self.save_network_state_epoch_modulo and
-                self.epoch_i % self.save_network_state_epoch_modulo == 0):
-                path = 'output/network_state_epoch:%s.csv' % self.epoch_i
-                self.save_network_state_file(path)
-            """
+        
+    def train(self):
+        if not hasattr(self, 'epoch_i'):
+            self.epoch_i = 0
+        
+        # present each training vector to the network and back propagate
+        # weights and error signals
+        for training_vector in self.training_vectors:
+            # set network's inputs to inputs provided by a training vector
+            self.set_inputs(training_vector[0])
+            # set network's expected outputs to train against
+            self.set_expected_outputs(training_vector[1])    
+            # feed the inputs through to produce values at output neurons  
+            self.feed_forward()            
+            # propagate errors and weights (connection strengths) backwards
+            self.backpropagate_errors()
             
             """
-            if self.epoch_i % 100 == 0:
-                if not os.path.exists('activations'):
-                    os.mkdir('activations')
-                fp = open('activations/act%s.csv' % self.epoch_i, 'w')
-                for x in NNUtils.frange(0, 1, 100):
-                    for y in NNUtils.frange(0, 1, 100):
-                        self.set_inputs([x, y])
-                        self.feed_forward()
-                        fp.write('%s,%s,%s\n' % (x, y, self.get_outputs()[0],))
-                fp.close()
+            if (self.save_network_state and 
+                self.save_network_state_iteration_modulo and
+                self.iteration_i % self.save_network_state_iteration_modulo == 0):
+                path = 'output/network_state_epoch:%s-iteration:%s.csv' %\
+                                          (self.epoch_i, self.iteration_i,)
+                self.save_network_state_file(path)
             """
+
+        self.epoch_i += 1
+
+        """
+        if (self.save_network_state and 
+            self.save_network_state_epoch_modulo and
+            self.epoch_i % self.save_network_state_epoch_modulo == 0):
+            path = 'output/network_state_epoch:%s.csv' % self.epoch_i
+            self.save_network_state_file(path)
+        """
         
+        """
+        if self.epoch_i % 100 == 0:
+            if not os.path.exists('activations'):
+                os.mkdir('activations')
+            fp = open('activations/act%s.csv' % self.epoch_i, 'w')
+            for x in NNUtils.frange(0, 1, 100):
+                for y in NNUtils.frange(0, 1, 100):
+                    self.set_inputs([x, y])
+                    self.feed_forward()
+                    fp.write('%s,%s,%s\n' % (x, y, self.get_outputs()[0],))
+            fp.close()
+        """
+
     def print_network_state(self):
         """print the current network state in Human readable form"""
         print "-" * 80
@@ -504,7 +525,6 @@ class NeuralNetwork():
                             'rmse,%.12f' % self.get_rmse(),
                             'runtime,%sh,%sm,%ss' % self.parse_runtime(),
                             epochs,
-                            'iterations,%s' % self.iteration_i,
                             'progress,%s' % progress,
                             'input_values,%s' % input_values,             
                             'output_values,%s' % output_values,
@@ -567,8 +587,6 @@ class NeuralNetwork():
                 self.epoch_i = int(split[1])
                 if len(split) == 3:
                     self.epochs_threshold = int(split[2])
-            elif line.startswith('iterations,'):
-                self.iterations_i = line.split(',')[1]
             elif line.startswith('input_values,'):
                 inputs = []
                 for input in line.split(',')[1:]:

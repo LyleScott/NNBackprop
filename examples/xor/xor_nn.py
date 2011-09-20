@@ -39,7 +39,7 @@ def main():
     # plot the activation due to a bunch of numbers 0-1
     # 1) uncomment save_network_state and save_network_state_iteration_modulo 
     #    in the above constructor.
-    # 2) uncomment the following 5 lines of code    
+    # 2) uncomment the following 5 lines of code
     """
     fp = open('activation.csv')
     for x in NNUtils.frange(0, 1, 100):
