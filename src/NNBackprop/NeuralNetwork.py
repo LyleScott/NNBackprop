@@ -94,24 +94,6 @@ class NeuralNetwork():
                                  n_outputs+1)
             )
 
-    """
-    def import_training_file(self, filepath, delimiter='\t', col_num=0, 
-                             moving_window_input_size=None,
-                             moving_window_output_size=None,
-                             moving_window_step_size=1):
-
-        self.training_file_path = filepath
-        if not moving_window_input_size or not moving_window_output_size:
-            moving_window_input_size = len(self.inputs)
-            moving_window_output_size = len(self.outputs)
-        (self.training_vectors, self.scale_min, self.scale_max) = (
-            NNUtils.parse_windowed_training_file(
-                filepath, input_win_size=moving_window_input_size, 
-                output_win_size=moving_window_output_size, 
-                step_size=moving_window_step_size, 
-                column_number=col_num))
-    """
-
     def set_training_vectors(self, vectors, scale_min, scale_max):
         """set the training vectors for the network"""
         self.training_vectors = vectors
@@ -232,24 +214,7 @@ class NeuralNetwork():
             # propagate errors and weights (connection strengths) backwards
             self.backpropagate_errors()
             
-            """
-            if (self.save_network_state and 
-                self.save_network_state_iteration_modulo and
-                self.iteration_i % self.save_network_state_iteration_modulo == 0):
-                path = 'output/network_state_epoch:%s-iteration:%s.csv' %\
-                                          (self.epoch_i, self.iteration_i,)
-                self.save_network_state_file(path)
-            """
-
         self.epoch_i += 1
-
-        """
-        if (self.save_network_state and 
-            self.save_network_state_epoch_modulo and
-            self.epoch_i % self.save_network_state_epoch_modulo == 0):
-            path = 'output/network_state_epoch:%s.csv' % self.epoch_i
-            self.save_network_state_file(path)
-        """
         
         """
         if self.epoch_i % 100 == 0:
