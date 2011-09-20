@@ -10,7 +10,7 @@ from NNUtils import NNUtils
 
 #TRAININGPATH = 'input/months-raw-training.dat'
 TRAININGPATH = 'input/months-smoothed-training.dat'
-MAX_EPOCHS = 2000
+MAX_EPOCHS = 3000
 TEST_SAMPLE_N = 60 
 
 # to view the series of PNG plots that gen generated as a video, install 
@@ -69,8 +69,8 @@ def train(nnet, max_epochs, test_epoch_modulo=10, plot=False):
                 
                 NNUtils.xy_prediction_plot(x1, x2, filepath=filepath, 
                                            title='epoch %s' % i,
-                                           x_axis_label='months into the future', 
-                                           y_axis_label='monthly sunspot count')
+                                           x1_axis_label='months into the future', 
+                                           x2_axis_label='monthly sunspot count')
         i += 1
 
 def test():

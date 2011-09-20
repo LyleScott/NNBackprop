@@ -133,7 +133,9 @@ def line_mse(observed_points, actual_points):
         mse += (actual_points[i] - observed_points[i][0]) ** 2
     return mse / len(observed_points)
 
-def xy_prediction_plot(x1, x2, filepath='.', title='', x1_label='', x2_label='', x1_axis_label='', x2_axis_label='', x1_axis_color='blue', x2_axis_color='red'):
+def xy_prediction_plot(x1, x2, filepath='.', title='', x1_label='', x2_label='',
+                       x1_axis_label='', x2_axis_label='', 
+                       x1_axis_color='blue', x2_axis_color='red'):
     #matplotlib.use('agg')
     import matplotlib.pyplot as plt
     
