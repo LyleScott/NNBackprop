@@ -11,7 +11,7 @@ from NNBackprop.Components import Links
 
 
 class NeuralNetwork():
-    def __init__(self, name=None, learn_rate=0.35, momentum=1.0, 
+    def __init__(self, name=None, learn_rate=0.35, momentum=0.9, 
                  network_state_file=None, 
                  save_network_state=False, save_network_state_epoch_modulo=0,
                  save_network_state_iteration_modulo=0,
@@ -271,6 +271,7 @@ class NeuralNetwork():
         print 'architecture :', self.get_architecture()
         print 'learn rate   : %s' % self.learn_rate
 
+        """
         tsse = self.get_tsse()
         if tsse:
             print 'TSSE         : %.12f' % tsse
@@ -286,6 +287,7 @@ class NeuralNetwork():
         runtime = self.parse_runtime()
         if runtime:
             print 'runtime      : %sh %sm %ss' % runtime
+        """
 
         if hasattr(self, 'epochs_threshold') and self.epochs_threshold:
             print 'epochs       : %s/%s' % (self.epoch_i, self.epochs_threshold)
